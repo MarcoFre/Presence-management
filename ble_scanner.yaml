@@ -1,0 +1,100 @@
+# ======================================================
+#                  SUBSTITUTIONS
+# ======================================================
+substitutions:
+  ip: "192.168.31.253"
+  hostname: "beacon-scanner-01"
+  friendly: "Beacon Scanner - Cameretta"
+  device: "esp32-c3-devkitm-1"
+  beacon_aura: "03b34a4d-647c-43ad-8e78-188e0540190a"
+
+# ======================================================
+#     GLOBAL VARIABLES = da DUPLICARE per ogni Beacon
+# ======================================================
+globals:
+  - id: last_seen_aura
+    type: uint32_t
+    initial_value: "0"
+  - id: beacon_alive_aura
+    type: bool
+    initial_value: "false"
+
+# ======================================================
+#                  SYSTEM CONFIG
+# ======================================================
+esphome:
+  name: "${hostname}"
+  friendly_name: "${friendly}"
+
+esp32:
+  board: "${device}"
+  framework:
+    type: esp-idf
+
+logger:
+  level: INFO
+
+wifi:
+  ssid: "TUA_SSID"
+  password: "TUA_PASSWORD"
+  power_save_mode: NONE
+  fast_connect: true
+
+api:
+  encryption:
+    key: "TUA_PASSWORD"
+
+ota:
+  - platform: esphome
+    password: "TUA_PASSWORD"
+
+# ======================================================
+#                  BLUETOOTH PROXY
+# ======================================================
+bluetooth_proxy:
+  active: True
+
+# ======================================================
+#                  BLE TRACKER
+# ======================================================
+esp32_ble_tracker:
+  scan_parameters:
+    interval: 300ms
+    window: 30ms
+    active: true
+
+# ======================================================
+#      SENSOR AURA = da DUPLICARE per ogni Beacon
+# ======================================================
+sensor:
+  - platform: ble_rssi
+    id: beacon_rssi_aura
+    name: "Aura Beacon RSSI"
+    ibeacon_uuid: "${beacon_aura}"
+    on_value:
+      then:
+        - lambda: |-
+            id(last_seen_aura) = millis();
+            id(beacon_alive_aura) = true;
+
+  - platform: template
+    id: beacon_distance_aura
+    name: "Aura Beacon Distance"
+    unit_of_measurement: "m"
+    accuracy_decimals: 2
+    update_interval: 2s
+    lambda: |-
+      float rssi = id(beacon_rssi_aura).state;
+      if (isnan(rssi) || rssi == 0) return NAN;
+      const float tx_power = -84.0;
+      const float n = 3.0;
+      float dist = pow(10.0, (tx_power - rssi) / (10.0 * n));
+      return clamp(dist, 0.3f, 4.0f);
+
+  - platform: template
+    id: beacon_last_seen_count_aura
+    name: "Aura Beacon Last Update"
+    unit_of_measurement: "s"
+    accuracy_decimals: 0
+    lambda: |-
+      return (millis() - id(last_seen_aura)) / 1000;
