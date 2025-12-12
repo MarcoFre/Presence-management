@@ -98,3 +98,13 @@ sensor:
     accuracy_decimals: 0
     lambda: |-
       return (millis() - id(last_seen_aura)) / 1000;
+# ======================================================
+#           STATUS BINARY SENSORS
+# ======================================================
+binary_sensor:
+  - platform: template
+    id: beacon_status_aura
+    name: "Aura Beacon Status"
+    device_class: connectivity
+    lambda: |-
+      return id(beacon_alive_aura);
