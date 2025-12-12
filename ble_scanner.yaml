@@ -108,3 +108,12 @@ binary_sensor:
     device_class: connectivity
     lambda: |-
       return id(beacon_alive_aura);
+
+# ======================================================
+#                OFFLINE TIMER CHECK
+# ======================================================
+interval:
+  - interval: 1s
+    then:
+      - lambda: |-
+          id(beacon_alive_aura) = ((millis() - id(last_seen_aura)) < 15000);
